@@ -27,20 +27,12 @@ app.get('/health', (req, res) => {
 app.get('/api/foods', async (req, res) => {
   try {
     const { search } = req.query;
-    let query = {};
-    if (search && search.trim() !== '') {
-      const regex = new RegExp(search.trim(), 'i');
-      query = {
-        $or: [
-          { foodId: regex },
-          { name: regex },
-          { category: regex },
-          { cuisine: regex },
-          { description: regex }
-        ]
-      };
+    let foods = await Food.find({}).sort({ createdAt: -1 });
+    if (search && search.trim() !== "") {
+      const rm = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").toLowerCase();
+      const kw = rm(search.trim());
+      foods = foods.filter(f => [f.foodId, f.name, f.category, f.cuisine, f.description].some(v => rm(v).includes(kw)));
     }
-    const foods = await Food.find(query).sort({ createdAt: -1 });
     res.status(200).json(foods);
   } catch (err) {
     res.status(500).json({ message: 'Loi may chu khi lay danh sach mon an', error: err.message });
